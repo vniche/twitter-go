@@ -33,7 +33,7 @@ params["user.fields"] = []string{
 }
 
 // fetch user by id
-user, err := client.UserByID(userID, params)
+user, err := client.LookupUserByID(userID, params)
 if err != nil {
     log.Panicf("unable to fetch user by id: %+v", err)
 }

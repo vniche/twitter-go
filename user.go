@@ -122,7 +122,7 @@ func init() {
 }
 
 // UserByID returns an unique user by it's ID
-func (client *Client) UserByID(userID string, parameters map[string][]string) (*User, error) {
+func (client *Client) LookupUserByID(userID string, parameters map[string][]string) (*User, error) {
 	var queryParams string
 
 	if len(parameters) > 0 {
