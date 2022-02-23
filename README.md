@@ -51,5 +51,5 @@ TODO: Contribution doc.
 
 ## License ##
 
-This library is distributed under the GPLv3 license found in the [LICENSE](./LICENSE)
+This library is distributed under the MIT license found in the [LICENSE](./LICENSE)
 file.
