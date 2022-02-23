@@ -144,8 +144,6 @@ func (client *Client) LookupUserByID(ctx context.Context, userID string, paramet
 		queryParams += key + "=" + strings.Join(value, ",")
 	}
 
-	fmt.Printf("queryParams: %s\n", queryParams)
-
 	req, err := client.buildRequest("GET", fmt.Sprintf("/users/%s%s", userID, queryParams), nil)
 	if err != nil {
 		return nil, err
