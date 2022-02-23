@@ -2,6 +2,7 @@ package twitter
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -128,7 +129,8 @@ func (client *Client) buildRequest(method, path string, body interface{}) (*http
 // StatusCode stands for the resp.Status code index
 const StatusCode = 0
 
-func (client *Client) do(req *http.Request, body interface{}) error {
+func (client *Client) do(ctx context.Context, req *http.Request, body interface{}) error {
+	req = req.WithContext(ctx)
 	resp, err := client.httpClient.Do(req)
 	if err != nil {
 		return err

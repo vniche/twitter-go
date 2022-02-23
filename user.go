@@ -1,6 +1,7 @@
 package twitter
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -122,7 +123,7 @@ func init() {
 }
 
 // UserByID returns an unique user by it's ID
-func (client *Client) LookupUserByID(userID string, parameters map[string][]string) (*User, error) {
+func (client *Client) LookupUserByID(ctx context.Context, userID string, parameters map[string][]string) (*User, error) {
 	var queryParams string
 
 	if len(parameters) > 0 {
@@ -149,8 +150,9 @@ func (client *Client) LookupUserByID(userID string, parameters map[string][]stri
 	if err != nil {
 		return nil, err
 	}
+
 	var response Response
-	err = client.do(req, &response)
+	err = client.do(ctx, req, &response)
 	if err != nil {
 		return nil, err
 	}
