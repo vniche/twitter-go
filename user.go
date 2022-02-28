@@ -2,10 +2,9 @@ package twitter
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/mitchellh/mapstructure"
 )
 
 // User represents a Twitter user
@@ -19,6 +18,10 @@ type User struct {
 		TweetCount     int `json:"tweet_count"`
 		ListedCount    int `json:"listed_count"`
 	} `json:"public_metrics"`
+}
+
+type LookupUserByIDResponse struct {
+	Data *User `json:"data"`
 }
 
 var Expansions = struct {
@@ -149,13 +152,13 @@ func (client *Client) LookupUserByID(ctx context.Context, userID string, paramet
 		return nil, err
 	}
 
-	var response Response
-	err = client.do(ctx, req, &response)
+	var responseBytes []byte
+	responseBytes, err = client.do(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var user *User
-	err = mapstructure.Decode(response.Data, &user)
-	return user, err
+	var response *LookupUserByIDResponse
+	err = json.Unmarshal(responseBytes, &response)
+	return response.Data, err
 }

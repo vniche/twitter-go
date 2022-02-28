@@ -33,11 +33,6 @@ type Client struct {
 	httpClient *http.Client
 }
 
-// Response stand for data-wrapping generic structure for Twitter API responses
-type Response struct {
-	Data interface{} `json:"data"`
-}
-
 func new() (*Client, error) {
 	baseURL, err := url.ParseRequestURI(API_URL)
 	if err != nil {
@@ -129,17 +124,18 @@ func (client *Client) buildRequest(method, path string, body interface{}) (*http
 // StatusCode stands for the resp.Status code index
 const StatusCode = 0
 
-func (client *Client) do(ctx context.Context, req *http.Request, body interface{}) error {
+func (client *Client) do(ctx context.Context, req *http.Request) ([]byte, error) {
 	req = req.WithContext(ctx)
 	resp, err := client.httpClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	var bodyBytes []byte
+	bodyBytes, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	statusInfo := strings.Split(resp.Status, " ")
@@ -147,13 +143,12 @@ func (client *Client) do(ctx context.Context, req *http.Request, body interface{
 	// test for response status code
 	status, err := strconv.Atoi(statusInfo[StatusCode])
 	if err != nil {
-		return err
+		return nil, err
 	} else if status < 200 || status > 299 {
-		return fmt.Errorf("request failed with status %d", status)
+		return nil, fmt.Errorf("request failed with status %d", status)
 	}
 
-	err = json.Unmarshal(bodyBytes, &body)
-	return err
+	return bodyBytes, nil
 }
 
 type QueryParameters map[string][]string
