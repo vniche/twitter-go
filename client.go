@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -124,31 +123,54 @@ func (client *Client) buildRequest(method, path string, body interface{}) (*http
 // StatusCode stands for the resp.Status code index
 const StatusCode = 0
 
-func (client *Client) do(ctx context.Context, req *http.Request) ([]byte, error) {
+type ErrorParameters struct {
+	IDs    []string `json:"ids"`
+	Values []string `json:"values"`
+}
+
+type GenericError struct {
+	Parameters ErrorParameters `json:"parameters"`
+	Message    string          `json:"message"`
+	Title      string          `json:"title"`
+	Detail     string          `json:"detail"`
+	Type       string          `json:"type"`
+}
+
+type GenericResponse struct {
+	Errors []GenericError `json:"errors"`
+}
+
+func (client *Client) do(ctx context.Context, req *http.Request) (*http.Response, error) {
 	req = req.WithContext(ctx)
 	resp, err := client.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
-	var bodyBytes []byte
-	bodyBytes, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
+	if err = verify(resp); err != nil {
 		return nil, err
 	}
 
-	statusInfo := strings.Split(resp.Status, " ")
-
-	// test for response status code
-	status, err := strconv.Atoi(statusInfo[StatusCode])
-	if err != nil {
-		return nil, err
-	} else if status < 200 || status > 299 {
-		return nil, fmt.Errorf("request failed with status %d", status)
-	}
-
-	return bodyBytes, nil
+	return resp, nil
 }
 
 type QueryParameters map[string][]string
+
+func verify(response *http.Response) error {
+	// check for response status code
+	statusInfo := strings.Split(response.Status, " ")
+	status, err := strconv.Atoi(statusInfo[StatusCode])
+	if err != nil {
+		return err
+	} else if status > 399 && status <= 499 {
+		var parsedResponse *GenericResponse
+		err = json.NewDecoder(response.Body).Decode(&parsedResponse)
+		if err != nil {
+			return fmt.Errorf("%s", strings.Join(statusInfo, " "))
+		}
+
+		return fmt.Errorf("%+v", parsedResponse.Errors)
+	}
+
+	return nil
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 )
 
@@ -17,7 +18,8 @@ type User struct {
 		FollowingCount int `json:"following_count"`
 		TweetCount     int `json:"tweet_count"`
 		ListedCount    int `json:"listed_count"`
-	} `json:"public_metrics"`
+	} `json:"public_metrics,omitempty"`
+	URL string `json:"url"`
 }
 
 type LookupUserByIDResponse struct {
@@ -127,10 +129,9 @@ func init() {
 
 // UserByID returns an unique user by it's ID
 func (client *Client) LookupUserByID(ctx context.Context, userID string, parameters map[string][]string) (*User, error) {
-	var queryParams string
-
-	if len(parameters) > 0 {
-		queryParams = "?"
+	queryParams, err := ParseURLParameters(parameters)
+	if err != nil {
+		return nil, err
 	}
 
 	for key, value := range parameters {
@@ -152,13 +153,13 @@ func (client *Client) LookupUserByID(ctx context.Context, userID string, paramet
 		return nil, err
 	}
 
-	var responseBytes []byte
-	responseBytes, err = client.do(ctx, req)
+	var response *http.Response
+	response, err = client.do(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var response *LookupUserByIDResponse
-	err = json.Unmarshal(responseBytes, &response)
-	return response.Data, err
+	var parsedResponse *LookupUserByIDResponse
+	err = json.NewDecoder(response.Body).Decode(&parsedResponse)
+	return parsedResponse.Data, err
 }

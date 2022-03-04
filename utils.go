@@ -1,6 +1,9 @@
 package twitter
 
-import "reflect"
+import (
+	"reflect"
+	"strings"
+)
 
 func IsOneOfEnum(value string, enums ...interface{}) bool {
 	valid := false
@@ -16,4 +19,23 @@ func IsOneOfEnum(value string, enums ...interface{}) bool {
 	}
 
 	return valid
+}
+
+func ParseURLParameters(parameters map[string][]string) (string, error) {
+	var queryParams string
+
+	if len(parameters) > 0 {
+		queryParams = "?"
+	}
+
+	index := 0
+	for key, value := range parameters {
+		// TODO: validate if parameters are valid
+		queryParams += key + "=" + strings.Join(value, ",")
+		if index != (len(parameters) - 1) {
+			queryParams += "&"
+		}
+		index++
+	}
+	return queryParams, nil
 }
