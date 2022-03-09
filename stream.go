@@ -137,7 +137,7 @@ func (client *Client) GetRules(ctx context.Context, parameters map[string][]stri
 type SearchStreamResponse struct {
 	Tweet    Tweet          `json:"data"`
 	Includes Includes       `json:"includes"`
-	Errors   []GenericError `json:"errors"`
+	Errors   []GenericError `json:"errors,omitempty"`
 }
 
 // SearchStream streams Tweets in real-time that match the rules that you added to the stream

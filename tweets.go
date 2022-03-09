@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type Mention struct {
@@ -37,10 +38,11 @@ type TweetMeta struct {
 
 // Tweet represents a Twitter tweet
 type Tweet struct {
-	ID       string   `json:"id"`
-	AuthorID string   `json:"author_id"`
-	Text     string   `json:"text"`
-	Entities Entities `json:"entities"`
+	ID        string    `json:"id"`
+	AuthorID  string    `json:"author_id"`
+	Text      string    `json:"text"`
+	Entities  Entities  `json:"entities"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type SearchRecentTweetsResponse struct {
