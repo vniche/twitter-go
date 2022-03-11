@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 )
 
@@ -193,6 +192,7 @@ func (client *Client) SearchStream(ctx context.Context, parameters map[string][]
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Connection", "keep-alive")
 
 	var response *http.Response
 	response, err = client.do(ctx, req)
@@ -209,16 +209,17 @@ func (client *Client) SearchStream(ctx context.Context, parameters map[string][]
 			case <-ctx.Done():
 				fmt.Printf("close stream from channel producer\n")
 				channel.Close()
+				response.Body.Close()
 				return
 			default:
 				var streamResponse *SearchStreamResponse
 				err = dec.Decode(&streamResponse)
 				if err != nil {
-					if err == io.EOF {
-						break
-					}
+					_, cancel := context.WithCancel(ctx)
+					cancel()
+
 					fmt.Printf("unable to decode stream message: %+v\n", err)
-					return
+					continue
 				}
 
 				channel.channel <- streamResponse
