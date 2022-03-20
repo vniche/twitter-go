@@ -219,7 +219,7 @@ func (client *Client) SearchStream(ctx context.Context, parameters map[string][]
 					cancel()
 
 					fmt.Printf("unable to decode stream message: %+v\n", err)
-					return
+					continue
 				}
 
 				channel.channel <- streamResponse
