@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -163,10 +164,23 @@ func verify(response *http.Response) error {
 	if err != nil {
 		return err
 	} else if status > 399 && status <= 499 {
-		var parsedResponse *GenericResponse
-		err = json.NewDecoder(response.Body).Decode(&parsedResponse)
+		bodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return fmt.Errorf("%s", strings.Join(statusInfo, " "))
+			return err
+		}
+
+		if status == 429 {
+			var response *GenericError
+			if err = json.Unmarshal(bodyBytes, &response); err != nil {
+				return err
+			}
+
+			return fmt.Errorf("%s", response.Detail)
+		}
+
+		var parsedResponse *GenericResponse
+		if err = json.Unmarshal(bodyBytes, &parsedResponse); err != nil {
+			return err
 		}
 
 		return fmt.Errorf("%+v", parsedResponse.Errors)
