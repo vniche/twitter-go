@@ -11,7 +11,7 @@ type Channel struct {
 	channel chan *SearchStreamResponse
 }
 
-// New is a constructor for new channel
+// NewChannel is a constructor for new channel
 func NewChannel() *Channel {
 	id := uuid.New().String()
 	channel := &Channel{

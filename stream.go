@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -134,9 +136,9 @@ func (client *Client) GetRules(ctx context.Context, parameters map[string][]stri
 }
 
 type SearchStreamResponse struct {
-	Tweet    Tweet          `json:"data"`
-	Includes Includes       `json:"includes"`
-	Errors   []GenericError `json:"errors,omitempty"`
+	Tweet    *Tweet          `json:"data,omitempty"`
+	Includes *Includes       `json:"includes,omitempty"`
+	Errors   []*GenericError `json:"errors,omitempty"`
 }
 
 // SearchStream streams Tweets in real-time that match the rules that you added to the stream
@@ -202,30 +204,47 @@ func (client *Client) SearchStream(ctx context.Context, parameters map[string][]
 
 	channel := NewChannel()
 
-	go func(ctx context.Context) {
-		dec := json.NewDecoder(response.Body)
-		for {
-			select {
-			case <-ctx.Done():
-				fmt.Printf("close stream from channel producer\n")
-				channel.Close()
-				response.Body.Close()
-				return
-			default:
-				var streamResponse *SearchStreamResponse
-				err = dec.Decode(&streamResponse)
-				if err != nil {
-					_, cancel := context.WithCancel(ctx)
-					cancel()
-
-					fmt.Printf("unable to decode stream message: %+v\n", err)
-					continue
-				}
-
-				channel.channel <- streamResponse
-			}
+	go func(ctx context.Context, channel *Channel, body io.ReadCloser) {
+		if err = processSearchStream(ctx, channel, body); err != nil {
+			fmt.Printf("error while trying to process stream message: %+v\n", err)
 		}
-	}(ctx)
+	}(ctx, channel, response.Body)
 
 	return channel, err
+}
+
+func processSearchStream(ctx context.Context, channel *Channel, body io.ReadCloser) error {
+	ctx, cancel := context.WithCancel(ctx)
+
+	bodyBytes, err := ioutil.ReadAll(body)
+	if err != nil {
+		cancel()
+		return err
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Printf("close stream from channel producer\n")
+			cancel()
+			channel.Close()
+			body.Close()
+			return nil
+		default:
+			var streamResponse *SearchStreamResponse
+			if err = json.Unmarshal(bodyBytes, &streamResponse); err != nil {
+				cancel()
+
+				fmt.Printf("unable to decode stream message: %s\n", string(bodyBytes))
+				return err
+			}
+
+			if streamResponse.Tweet == nil {
+				cancel()
+				return fmt.Errorf("no tweet present on stream message")
+			}
+
+			channel.channel <- streamResponse
+		}
+	}
 }
