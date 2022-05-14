@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -206,7 +205,7 @@ func (client *Client) SearchStream(ctx context.Context, parameters map[string][]
 
 	go func(ctx context.Context, channel *Channel, body io.ReadCloser) {
 		if err = processSearchStream(ctx, channel, body); err != nil {
-			fmt.Printf("error while trying to process stream message: %+v\n", err)
+			fmt.Printf("error while trying to process stream: %+v\n", err)
 		}
 	}(ctx, channel, response.Body)
 
@@ -214,34 +213,27 @@ func (client *Client) SearchStream(ctx context.Context, parameters map[string][]
 }
 
 func processSearchStream(ctx context.Context, channel *Channel, body io.ReadCloser) error {
-	ctx, cancel := context.WithCancel(ctx)
-
-	bodyBytes, err := ioutil.ReadAll(body)
-	if err != nil {
-		cancel()
-		return err
-	}
-
+	decoder := json.NewDecoder(body)
 	for {
 		select {
 		case <-ctx.Done():
 			fmt.Printf("close stream from channel producer\n")
-			cancel()
 			channel.Close()
 			body.Close()
 			return nil
 		default:
-			var streamResponse *SearchStreamResponse
-			if err = json.Unmarshal(bodyBytes, &streamResponse); err != nil {
-				cancel()
-
-				fmt.Printf("unable to decode stream message: %s\n", string(bodyBytes))
+			var (
+				streamResponse *SearchStreamResponse
+				err            error
+			)
+			if err = decoder.Decode(&streamResponse); err != nil {
+				fmt.Printf("error while trying to decode stream message: %+v\n", err)
 				return err
 			}
 
 			if streamResponse.Tweet == nil {
-				cancel()
-				return fmt.Errorf("no tweet present on stream message")
+				fmt.Printf("tweet is empty\n")
+				continue
 			}
 
 			channel.channel <- streamResponse
